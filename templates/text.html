@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Verification - VerifyAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s;
+            font-size: 18px;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        /* Page Title */
+        .page-title {
+            text-align: center;
+            padding: 60px 0 40px 0;
+        }
+
+        .page-title h1 {
+            font-size: 56px;
+            margin-bottom: 15px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .page-title p {
+            font-size: 20px;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease;
+        }
+
+        /* Text Analysis Section */
+        .text-content {
+            padding: 40px 0 80px 0;
+        }
+
+        .text-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 60px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .text-box:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .text-icon {
+            font-size: 80px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .text-box h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .text-box .description {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .text-area-wrapper {
+            margin-bottom: 30px;
+        }
+
+        .text-area {
+            width: 100%;
+            min-height: 300px;
+            padding: 20px;
+            font-size: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            outline: none;
+            resize: vertical;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .text-area:focus {
+            background: #fff;
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .text-area::placeholder {
+            color: #999;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 14px;
+            opacity: 0.7;
+            margin-top: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .analyze-button {
+            background: #fff;
+            color: #667eea;
+            padding: 18px 50px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .analyze-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .clear-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 18px 40px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .status-message {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 16px;
+            display: none;
+            text-align: center;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .status-message.error {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .status-message.processing {
+            background: rgba(255, 193, 7, 0.3);
+        }
+
+        .example-texts {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .example-texts h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .examples {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            background: rgba(0, 0, 0, 0.2);
+            margin-top: 80px;
+        }
+
+        footer p {
+            opacity: 0.9;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .page-title h1 {
+                font-size: 42px;
+            }
+            
+            .text-box {
+                padding: 40px 30px;
+            }
+
+            .text-area {
+                min-height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="VerifyAI.html" class="logo">
+                <div class="logo-icon">✓</div>
+                VerifyAI
+            </a>
+            <ul class="nav-links">
+                <li><a href="/verifyAI">Home</a></li>
+                <li><a href="/getStarted">Features</a></li>
+                <li><a href="/text">How It Works</a></li>
+                <li><a href="/aboutUs">About</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="page-title">
+        <div class="container">
+            <h1>Text Verification</h1>
+            <p>Paste text to fact-check political statements and articles</p>
+        </div>
+    </section>
+
+    <section class="text-content">
+        <div class="container">
+            <div class="text-box">
+                <div class="text-icon">📄</div>
+                <h2>Analyze Political Text</h2>
+                <p class="description">Paste articles, tweets, social media posts, or any political content below</p>
+                
+                <div class="text-area-wrapper">
+                    <textarea 
+                        id="textInput" 
+                        class="text-area" 
+                        placeholder="Paste your text here... (articles, tweets, statements, etc.)"
+                        oninput="updateCharCount()"
+                    ></textarea>
+                    <div id="charCount" class="char-count">0 characters</div>
+                </div>
+
+                <div class="button-group">
+                    <button class="analyze-button" onclick="analyzeText()">Analyze Text</button>
+                    <button class="clear-button" onclick="clearText()">Clear</button>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+
+                <div class="example-texts">
+                    <h3>Try an example:</h3>
+                    <div class="examples">
+                        <button class="example-btn" onclick="loadExample(1)">Political Statement</button>
+                        <button class="example-btn" onclick="loadExample(2)">News Article</button>
+                        <button class="example-btn" onclick="loadExample(3)">Social Media Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 VerifyAI. Fighting misinformation with artificial intelligence.</p>
+            <p style="margin-top: 10px; opacity: 0.7;">Empowering citizens with truth and transparency.</p>
+        </div>
+    </footer>
+
+    <script>
+        function updateCharCount() {
+            const textInput = document.getElementById('textInput');
+            const charCount = document.getElementById('charCount');
+            const count = textInput.value.length;
+            charCount.textContent = `${count} characters`;
+        }
+
+        function analyzeText() {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                showStatus('Please enter some text to analyze', 'error');
+                return;
+            }
+
+            if (text.length < 50) {
+                showStatus('Please enter at least 50 characters for meaningful analysis', 'error');
+                return;
+            }
+
+            showStatus('Analyzing text... Cross-referencing with trusted sources.', 'processing');
+            
+            // Simulate analysis (replace with actual API call)
+            setTimeout(() => {
+                showStatus('Analysis complete! Text has been fact-checked. (Demo mode - connect your backend for real analysis)', 'success');
+            }, 2500);
+        }
+
+        function clearText() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('charCount').textContent = '0 characters';
+            document.getElementById('statusMessage').className = 'status-message';
+        }
+
+        function loadExample(num) {
+            const examples = {
+                1: "The unemployment rate has dropped to its lowest level in 50 years, demonstrating the strength of our economy and the effectiveness of our policies.",
+                2: "According to recent reports, the new infrastructure bill allocates $2 trillion over the next decade to rebuild roads, bridges, and public transportation systems across the country.",
+                3: "Breaking: New study shows that 95% of climate scientists agree on human-caused climate change. This consensus has been building for decades based on thousands of peer-reviewed studies."
+            };
+            
+            document.getElementById('textInput').value = examples[num];
+            updateCharCount();
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message show ${type}`;
+        }
+    </script>
+</body>
+</html>

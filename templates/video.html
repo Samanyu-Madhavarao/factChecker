@@ -1,58 +1,3 @@
-from flask import Flask, request, render_template_string, render_template
-import subprocess
-from pathlib import Path
-import uuid
-import time
-from twelvelabs import TwelveLabs
-import os
-
-app = Flask(__name__)
-
-# Set your TwelveLabs API key
-os.environ["TL_API_KEY"] = "tlk_1H3EKJB1AMAH8A26XNV073KGZT34"
-client = TwelveLabs(api_key=os.getenv("TL_API_KEY"))
-
-# Your youtube_to_mp4 function
-def youtube_to_mp4(url, out_dir="videos", max_duration=600):
-    Path(out_dir).mkdir(exist_ok=True)
-    output = f"{out_dir}/{uuid.uuid4()}.%(ext)s"
-
-    subprocess.run([
-        "yt-dlp",
-        "-f", "bv*[height<=720]+ba/b",
-        "--merge-output-format", "mp4",
-        "--postprocessor-args", "ffmpeg: -movflags faststart",
-        "--match-filter", f"duration < {max_duration}",
-        "-o", output,
-        "--cookies", "/Users/yajatsharma/Downloads/factCheckerFR/cookies.txt",
-        url
-    ], check=True)
-
-    return output.replace("%(ext)s", "mp4")
-
-def deleteMP4(file):
-    Path(file).unlink()
-    if not Path(file).exists():
-        print("Deleted:", file)
-
-@app.route("/verifyAI")
-def verifyAI():
-    return render_template("verifyAI.html")
-
-@app.route("/getStarted")
-def get_started():
-    return render_template("getStarted.html")
-
-@app.route("/text")
-def text_page():
-    return render_template("text.html")
-
-@app.route("/aboutUs")
-def about_us():
-    return render_template("aboutUs.html")
-
-# HTML page
-HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -360,11 +305,11 @@ HTML_PAGE = """
                 VerifyAI
             </a>
             <ul class="nav-links">
-                <li><a href="/verifyAI">Home</a></li>
-                <li><a href="/getStarted">Features</a></li>
-                <li><a href="/text">How It Works</a></li>
-                <li><a href="/aboutUs">About</a></li>
-                <li><a href="VerifyAI.html#contact">Contact</a></li>
+                <li><a href="VeryifyAI.html">Home</a></li>
+                <li><a href="VeryifyAI.html#features">Features</a></li>
+                <li><a href="VeryifyAI.html#how-it-works">How It Works</a></li>
+                <li><a href="aboutUs.html">About</a></li>
+                <li><a href="VeryifyAI.html#contact">Contact</a></li>
             </ul>
         </nav>
     </header>
@@ -389,20 +334,17 @@ HTML_PAGE = """
                     <div id="fileName" class="file-name"></div>
                 </div>
 
+                <button id="analyzeBtn" class="analyze-button" onclick="analyzeVideo()">Analyze Video</button>
                 
                 <div class="divider">
                     <span>OR</span>
                 </div>
 
                 <div class="youtube-section">
-                    <form method=post>
-                        <h3 style="margin-bottom: 20px;">Enter YouTube URL</h3>
-                        <input type="text" name=url id="youtubeUrl" class="youtube-input" placeholder="https://www.youtube.com/watch?v=...">
-                        <button class="file-label" type=submit style="padding: 15px 40px;">Analyze YouTube Video</button>
-                    </form>
+                    <h3 style="margin-bottom: 20px;">Enter YouTube URL</h3>
+                    <input type="text" id="youtubeUrl" class="youtube-input" placeholder="https://www.youtube.com/watch?v=...">
+                    <button class="file-label" onclick="analyzeYouTube()" style="padding: 15px 40px;">Analyze YouTube Video</button>
                 </div>
-
-                
 
                 <div id="statusMessage" class="status-message"></div>
             </div>
@@ -483,60 +425,3 @@ HTML_PAGE = """
     </script>
 </body>
 </html>
-"""
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        url = request.form["url"]
-        print(f"Received URL: {url}")  # This prints in your VS Code terminal
-
-        try:
-            # Download video
-            mp4_path = youtube_to_mp4(url)
-            print("Downloaded video:", mp4_path)
-
-            # TwelveLabs processing (simplified for example)
-            unique_index_name = f"videos_{uuid.uuid4()}"
-            index = client.indexes.create(
-                index_name=unique_index_name,
-                models=[{"model_name": "pegasus1.2", "model_options": ["visual", "audio"]}]
-            )
-            asset = client.assets.create(method="direct", file=open(mp4_path, "rb"))
-            indexed_asset = client.indexes.indexed_assets.create(
-                index_id=index.id,
-                asset_id=asset.id
-            )
-
-            # Wait until ready
-            while True:
-                indexed_asset = client.indexes.indexed_assets.retrieve(
-                    index_id=index.id,
-                    indexed_asset_id=indexed_asset.id
-                )
-                print(f"Status: {indexed_asset.status}")
-                if indexed_asset.status == "ready":
-                    break
-                elif indexed_asset.status == "failed":
-                    raise RuntimeError("Indexing failed")
-                time.sleep(5)
-
-            # Analyze
-            text = client.analyze(
-                video_id=indexed_asset.id,
-                prompt="check for misinformation. Give in format: Summary: bullet points below, Misinformation: bullet points below (if none, say none)",
-                temperature=0.2,
-                max_tokens=1024
-            )
-            print("Analysis result:\n", text.data)
-
-            deleteMP4(mp4_path)
-
-        except Exception as e:
-            print("Error:", e)
-            return f"<p>Error occurred: {e}</p>"
-
-    return render_template_string(HTML_PAGE)
-
-if __name__ == "__main__":
-    app.run(debug=True)
