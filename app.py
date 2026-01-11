@@ -24,7 +24,7 @@ def youtube_to_mp4(url, out_dir="videos", max_duration=600):
         "--postprocessor-args", "ffmpeg: -movflags faststart",
         "--match-filter", f"duration < {max_duration}",
         "-o", output,
-        "--cookies", "/Users/yajatsharma/Downloads/factChecker/cookies.txt",
+        "--cookies", "cookies.txt",
         url
     ], check=True)
 
@@ -51,7 +51,7 @@ def text_page():
 def about_us():
     return render_template("aboutUs.html")
 
-# HTML page
+# HTML page with result display
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -208,6 +208,7 @@ HTML_PAGE = """
             font-weight: bold;
             transition: all 0.3s ease;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: none;
         }
 
         .file-label2 {
@@ -251,11 +252,6 @@ HTML_PAGE = """
             transition: all 0.3s ease;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             margin-top: 20px;
-            display: none;
-        }
-
-        .analyze-button.show {
-            display: inline-block;
         }
 
         .analyze-button:hover {
@@ -263,28 +259,29 @@ HTML_PAGE = """
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .status-message {
-            margin-top: 30px;
-            padding: 20px;
-            border-radius: 15px;
+        /* Result Box */
+        .result-box {
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            border-radius: 20px;
+            text-align: left;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .result-box h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #a5f3a9;
+        }
+
+        .result-content {
+            white-space: pre-wrap;
+            line-height: 1.8;
             font-size: 16px;
-            display: none;
-        }
-
-        .status-message.show {
-            display: block;
-        }
-
-        .status-message.success {
-            background: rgba(76, 175, 80, 0.3);
-        }
-
-        .status-message.error {
-            background: rgba(244, 67, 54, 0.3);
-        }
-
-        .status-message.processing {
-            background: rgba(255, 193, 7, 0.3);
         }
 
         .divider {
@@ -342,6 +339,14 @@ HTML_PAGE = """
 
         footer p {
             opacity: 0.9;
+        }
+
+        #hiddenText {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
         }
 
         @keyframes fadeInUp {
@@ -406,7 +411,7 @@ HTML_PAGE = """
                         <label for="videoFile" class="file-label2">Choose Video File</label>
                         <div id="fileName" class="file-name"></div>
                         
-                        <button type="submit" class="analyze-button show">Analyze Video</button>
+                    <button type="submit" class="analyze-button" onclick="document.getElementById('loadingMessage').style.display='block'; var err = document.getElementById('errorBox'); if(err) err.style.display='none';">Analyze Video</button>
                     </form>
                 </div>
                 
@@ -417,12 +422,25 @@ HTML_PAGE = """
                 <div class="youtube-section">
                     <form method=post>
                         <h3 style="margin-bottom: 20px;">Enter YouTube URL</h3>
-                        <input type="text" name=url id="youtubeUrl" class="youtube-input" placeholder="https://www.youtube.com/watch?v=...">
-                        <button class="file-label" type=submit style="padding: 15px 40px;">Analyze YouTube Video</button>
+                        <input type="text" name="url" id="youtubeUrl" class="youtube-input" placeholder="https://www.youtube.com/watch?v=...">
+                        <button class="file-label" type="submit" onclick="document.getElementById('loadingMessage').style.display='block'; var err = document.getElementById('errorBox'); if(err) err.style.display='none';" style="padding: 15px 40px;">Analyze YouTube Video</button>                        <p id="loadingMessage" style="display: none; margin-top: 20px; padding: 20px; background: rgba(255, 193, 7, 0.3); border-radius: 15px; border: 2px solid rgba(255, 193, 7, 0.5);">
+                        ⏳ Analyzing video... This may take several minutes. Please wait and do not refresh the page.
+                        </p>
                     </form>
                 </div>
 
-                <div id="statusMessage" class="status-message"></div>
+                {% if result %}
+                    {% if result.startswith('❌') %}
+                    <div id="errorBox" style="margin-top: 30px; padding: 20px; background: rgba(244, 67, 54, 0.2); border: 2px solid rgba(244, 67, 54, 0.5); border-radius: 15px;">
+                        <div class="result-content" style="text-align: center; font-size: 18px;">{{ result }}</div>
+                    </div>
+                    {% else %}
+                    <div class="result-box">
+                        <h3>✅ Analysis Complete!</h3>
+                        <div class="result-content">{{ result }}</div>
+                    </div>
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
     </section>
@@ -440,63 +458,23 @@ HTML_PAGE = """
         function handleVideoUpload() {
             const fileInput = document.getElementById('videoFile');
             const fileName = document.getElementById('fileName');
-            const analyzeBtn = document.getElementById('analyzeBtn');
             
             if (fileInput.files.length > 0) {
                 uploadedFile = fileInput.files[0];
                 
-                // Check if it's an MP4 file
                 if (!uploadedFile.type.includes('mp4')) {
-                    showStatus('Please upload an MP4 video file', 'error');
+                    alert('Please upload an MP4 video file');
                     uploadedFile = null;
                     return;
                 }
                 
                 fileName.textContent = `Selected: ${uploadedFile.name} (${(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)`;
-                analyzeBtn.classList.add('show');
             }
         }
-
-        function analyzeVideo() {
-            if (!uploadedFile) {
-                showStatus('Please select a video file first', 'error');
-                return;
-            }
-
-            showStatus(`Analyzing "${uploadedFile.name}"... This may take a few minutes.`, 'processing');
-            
-            // Simulate analysis (replace with actual API call)
-            setTimeout(() => {
-                showStatus('Analysis complete! Video has been fact-checked. (Demo mode - connect your backend for real analysis)', 'success');
-            }, 3000);
-        }
-
-        function analyzeYouTube() {
-            const url = document.getElementById('youtubeUrl').value;
-            
-            if (!url) {
-                showStatus('Please enter a YouTube URL', 'error');
-                return;
-            }
-
-            // Basic YouTube URL validation
-            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-                showStatus('Please enter a valid YouTube URL', 'error');
-                return;
-            }
-
-            showStatus('Analyzing YouTube video... This may take a moment.', 'processing');
-            
-            // Simulate processing (replace with actual API call)
-            setTimeout(() => {
-                showStatus('Analysis complete! YouTube video has been fact-checked. (Demo mode)', 'success');
-            }, 3000);
-        }
-
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('statusMessage');
-            statusDiv.textContent = message;
-            statusDiv.className = `status-message show ${type}`;
+        function showLoadingMessage() {
+        // Show the loading message when form is submitted
+        document.getElementById('loadingMessage').style.display = 'block';
+        return true; // Allow form to submit
         }
     </script>
 </body>
@@ -505,25 +483,28 @@ HTML_PAGE = """
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    result = None
+    
     if request.method == "POST":
-        # Get YouTube URL (can be empty)
         url = request.form.get("url", "").strip()
-        # Get uploaded file (can be None)
         uploaded_file = request.files.get("videoFile")
 
+        # Check if neither URL nor file is provided
         if not url and not uploaded_file:
-            return "<p>Error: Please provide a YouTube URL or upload a video file.</p>"
+            result = "❌ Error: Please provide a YouTube URL or upload a video file."
+            return render_template_string(HTML_PAGE, result=result)
+        
+        # Check if URL is provided but invalid
+        if url and not ('youtube.com' in url or 'youtu.be' in url):
+            result = "❌ Error: Please enter a valid YouTube URL (must contain 'youtube.com' or 'youtu.be')"
+            return render_template_string(HTML_PAGE, result=result)
 
         try:
-            # If YouTube URL is provided
             if url:
                 print(f"Received URL: {url}")
                 mp4_path = youtube_to_mp4(url)
                 print("Downloaded video:", mp4_path)
-
-            # If an MP4 file is uploaded
             elif uploaded_file:
-                # Save uploaded file to 'videos' directory
                 out_dir = "videos"
                 Path(out_dir).mkdir(exist_ok=True)
                 filename = f"{uuid.uuid4()}.mp4"
@@ -564,15 +545,18 @@ def index():
                 max_tokens=1024
             )
             print("Analysis result:\n", text.data)
+            
+            # Store result to display on page
+            result = text.data
 
             # Delete local video after processing
             deleteMP4(mp4_path)
 
         except Exception as e:
             print("Error:", e)
-            return f"<p>Error occurred: {e}</p>"
+            result = f"Error occurred: {e}"
 
-    return render_template_string(HTML_PAGE)
+    return render_template_string(HTML_PAGE, result=result)
 
 
 if __name__ == "__main__":
