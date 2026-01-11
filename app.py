@@ -10,12 +10,12 @@ import os
 app = Flask(__name__)
 
 # Set your TwelveLabs API key
-os.environ["TL_API_KEY"] = "API-KEY-HERE"
+os.environ["TL_API_KEY"] = "tlk_1H3EKJB1AMAH8A26XNV073KGZT34"
 client = TwelveLabs(api_key=os.getenv("TL_API_KEY"))
 
 client2 = OpenAI(
   base_url="https://openrouter.ai/api/v1",
-  api_key="API-KEY-HERE",
+  api_key="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",
 )
 
 # Your youtube_to_mp4 function
@@ -592,7 +592,7 @@ def index():
             # Analyze
             text = client.analyze(
                 video_id=indexed_asset.id,
-                prompt="check for misinformation. Give in format: Summary: bullet points below, Misinformation: bullet points below (if none, say none)",
+                prompt="check for misinformation. Give in format: Summary: bullet points below, Misinformation: bullet points below (if none, say none). Give confidence score in percentage from 0 to 100.",
                 temperature=0.2,
                 max_tokens=1024
             )

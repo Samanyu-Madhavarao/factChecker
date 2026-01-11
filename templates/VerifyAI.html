@@ -130,21 +130,38 @@
 
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 40px;
+            grid-template-columns: repeat(6, 1fr); /* 6 tiny columns */
+            gap: 30px;
         }
 
+        /* THE TOP TWO BUTTONS */
+        .feature-card.primary-action {
+            grid-column: span 3;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid #fff;
+        }
+
+        /* Middle/Bottom cards: 2 columns each (2+2+2=6) */
+        .feature-card:not(.primary-action) {
+            grid-column: span 2;
+        }
+
+        /* THE MAGIC TRICK: Center the last card */
+        .feature-card:last-child {
+            grid-column: 3 / span 2; /* Starts at column 3, takes up 2 spaces */
+        }
+
+        /* Base card behavior (Default for the bottom 4 cards) */
         .feature-card {
+            grid-column: span 2; /* Bottom cards take up 2 columns each (3 per row) */
             background: rgba(255, 255, 255, 0.15);
             padding: 40px;
             border-radius: 20px;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            
-            /* ADD THESE 3 LINES: */
             display: flex;
             flex-direction: column;
-            align-items: flex-start; /* This keeps text aligned to the left */
+            align-items: flex-start;
         }
 
         .feature-card:hover {
@@ -175,6 +192,19 @@
         .feature-card p {
             opacity: 0.9;
             line-height: 1.6;
+        }
+
+        .feature-card.primary-action:hover {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+            transform: translateY(-5px);
+        }
+
+        /* Ensure icons are centered but text is left */
+        .feature-icon, .feature-icon-for-small {
+            font-size: 60px;
+            margin-bottom: 20px;
+            align-self: center; 
         }
 
         /* How It Works */
@@ -416,31 +446,36 @@
         <div class="container">
             <h2>Why Choose VerifyAI?</h2>
             <div class="feature-grid">
-                <a href="/" class="feature-card" style="text-decoration: none; color: inherit;">
+                <a href="/" class="feature-card primary-action" style="text-decoration: none; color: inherit;">
                     <div class="feature-icon">📹</div>
                     <h3>Video Analysis</h3>
                     <p>Upload videos and our AI analyzes visual content, audio, and context to detect manipulated or misleading information.</p>
                 </a>
-                <a href="/text" class="feature-card" style="text-decoration: none; color: inherit;">
+            
+                <a href="/text" class="feature-card primary-action" style="text-decoration: none; color: inherit;">
                     <div class="feature-icon">📄</div>
                     <h3>Text Verification</h3>
                     <p>Paste articles, tweets, or any text. We cross-reference multiple sources to validate claims and identify misinformation.</p>
                 </a>
+            
                 <div class="feature-card">
                     <div class="feature-icon">⚡</div>
                     <h3>Real-Time Results</h3>
                     <p>Get comprehensive fact-check reports in seconds, complete with credibility scores and source citations.</p>
                 </div>
+            
                 <div class="feature-card">
                     <div class="feature-icon-for-small">🎯</div>
                     <h3>Political Focus</h3>
                     <p>Specialized algorithms trained specifically on political discourse, statements, and policy claims.</p>
                 </div>
+            
                 <div class="feature-card">
                     <div class="feature-icon-for-small">🔍</div>
                     <h3>Source Tracking</h3>
                     <p>Trace claims back to their origins and see how information spreads across platforms.</p>
                 </div>
+            
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
                     <h3>Detailed Reports</h3>
