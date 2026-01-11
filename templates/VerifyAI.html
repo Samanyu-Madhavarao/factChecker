@@ -140,6 +140,11 @@
             border-radius: 20px;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            
+            /* ADD THESE 3 LINES: */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* This keeps text aligned to the left */
         }
 
         .feature-card:hover {
@@ -149,8 +154,17 @@
         }
 
         .feature-icon {
-            font-size: 48px;
+            font-size: 60px;
             margin-bottom: 20px;
+            
+            align-self: center; /* This overrides the parent and centers only the icon */
+        }
+
+        .feature-icon-for-small {
+            font-size: 70px;
+            margin-bottom: 20px;
+            
+            align-self: center; /* This overrides the parent and centers only the icon */
         }
 
         .feature-card h3 {
@@ -418,12 +432,12 @@
                     <p>Get comprehensive fact-check reports in seconds, complete with credibility scores and source citations.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
+                    <div class="feature-icon-for-small">🎯</div>
                     <h3>Political Focus</h3>
                     <p>Specialized algorithms trained specifically on political discourse, statements, and policy claims.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
+                    <div class="feature-icon-for-small">🔍</div>
                     <h3>Source Tracking</h3>
                     <p>Trace claims back to their origins and see how information spreads across platforms.</p>
                 </div>
