@@ -1,12 +1,19 @@
+from flask import Flask, request, render_template_string
 import subprocess
-import uuid
 from pathlib import Path
+import uuid
+import time
 from twelvelabs import TwelveLabs
 import os
-import uuid # Added for unique index name
-import time # Added because time.sleep is used
 
-def youtube_to_mp4(url, out_dir="/Users/yajatsharma/Downloads/factCheckerFR/videos", max_duration = 600):
+app = Flask(__name__)
+
+# Set your TwelveLabs API key
+os.environ["TL_API_KEY"] = "tlk_1H3EKJB1AMAH8A26XNV073KGZT34"
+client = TwelveLabs(api_key=os.getenv("TL_API_KEY"))
+
+# Your youtube_to_mp4 function
+def youtube_to_mp4(url, out_dir="videos", max_duration=600):
     Path(out_dir).mkdir(exist_ok=True)
     output = f"{out_dir}/{uuid.uuid4()}.%(ext)s"
 
@@ -23,61 +30,497 @@ def youtube_to_mp4(url, out_dir="/Users/yajatsharma/Downloads/factCheckerFR/vide
     return output.replace("%(ext)s", "mp4")
 
 def deleteMP4(file):
-  Path(file).unlink()
-  if not Path(file).exists:
-    print('deleted')
+    Path(file).unlink()
+    if not Path(file).exists():
+        print("Deleted:", file)
 
-os.environ["TL_API_KEY"] = "tlk_1H3EKJB1AMAH8A26XNV073KGZT34"
-client = TwelveLabs(api_key = os.getenv("TL_API_KEY"))
+# HTML page
+HTML_PAGE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis - VerifyAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-# Generate a unique index name
-unique_index_name = f"videos_{uuid.uuid4()}"
-index = client.indexes.create(
-    index_name = unique_index_name,
-    models = [{"model_name": "pegasus1.2", "model_options": ["visual", "audio"]}]
-)
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-if not index.id:
-  raise RuntimeError("Failed to create an index")
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
 
-print(f'Created index: {index.id}')
+        /* Header */
+        header {
+            padding: 20px 0;
+            position: relative;
+            z-index: 10;
+        }
 
-mp4_path = youtube_to_mp4("https://www.youtube.com/watch?v=FkWFkraLU8k")
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-# Corrected: use the variable mp4_path instead of the string literal "mp4_path"
-asset = client.assets.create(
-    method = "direct",
-    file = open(mp4_path, "rb")
-)
-print(f"Created asset: {asset.id}")
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #fff;
+        }
 
-indexed_asset = client.indexes.indexed_assets.create(
-    index_id = index.id,
-    asset_id = asset.id
-)
-print(f"Indexed asset: {indexed_asset.id}")
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
 
-print("Waiting for indexing to complete.")
-while True:
-    indexed_asset = client.indexes.indexed_assets.retrieve(
-        index_id=index.id,
-        indexed_asset_id=indexed_asset.id
-    )
-    print(f"  Status={indexed_asset.status}")
-    if indexed_asset.status == "ready":
-        print("Indexing complete!")
-        break
-    elif indexed_asset.status == "failed":
-        raise RuntimeError("Indexing failed")
-    time.sleep(5)
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
 
-text = client.analyze(
-    video_id=indexed_asset.id,
-    prompt="check for misinformation. Give in format: Summary: bullet points below, Misinformation: bullet points below (if none, say none)",
-    temperature=0.2,
-    max_tokens=1024,
-    # You can also use `response_format` to request structured JSON responses
-)
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s;
+            font-size: 18px;
+        }
 
-print(f"{text.data}")
-deleteMP4(mp4_path)
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        /* Page Title */
+        .page-title {
+            text-align: center;
+            padding: 60px 0 40px 0;
+        }
+
+        .page-title h1 {
+            font-size: 56px;
+            margin-bottom: 15px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .page-title p {
+            font-size: 20px;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease;
+        }
+
+        /* Upload Section */
+        .upload-content {
+            padding: 40px 0 80px 0;
+        }
+
+        .upload-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 60px;
+            border-radius: 30px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            text-align: center;
+            transition: all 0.3s ease;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .upload-box:hover {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .upload-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+        }
+
+        .upload-box h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .upload-box p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 20px 50px;
+            background: #fff;
+            color: #667eea;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-label:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .file-name {
+            margin-top: 20px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .analyze-button {
+            background: #fff;
+            color: #667eea;
+            padding: 18px 50px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            display: none;
+        }
+
+        .analyze-button.show {
+            display: inline-block;
+        }
+
+        .analyze-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-message {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 16px;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .status-message.error {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .status-message.processing {
+            background: rgba(255, 193, 7, 0.3);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .divider span {
+            padding: 0 20px;
+            opacity: 0.7;
+        }
+
+        .youtube-section {
+            margin-top: 30px;
+        }
+
+        .youtube-input {
+            width: 100%;
+            padding: 18px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .youtube-input:focus {
+            background: #fff;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .youtube-input::placeholder {
+            color: #999;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            background: rgba(0, 0, 0, 0.2);
+            margin-top: 80px;
+        }
+
+        footer p {
+            opacity: 0.9;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .page-title h1 {
+                font-size: 42px;
+            }
+            
+            .upload-box {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="VerifyAI.html" class="logo">
+                <div class="logo-icon">✓</div>
+                VerifyAI
+            </a>
+            <ul class="nav-links">
+                <li><a href="VeryifyAI.html">Home</a></li>
+                <li><a href="VeryifyAI.html#features">Features</a></li>
+                <li><a href="VeryifyAI.html#how-it-works">How It Works</a></li>
+                <li><a href="aboutUs.html">About</a></li>
+                <li><a href="VeryifyAI.html#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="page-title">
+        <div class="container">
+            <h1>Video Analysis</h1>
+            <p>Upload videos to fact-check political content with AI</p>
+        </div>
+    </section>
+
+    <section class="upload-content">
+        <div class="container">
+            <div class="upload-box">
+                <div class="upload-icon">🎥</div>
+                <h2>Upload Video File</h2>
+                <p>Drag and drop your video file or click to browse (MP4 format)</p>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="videoFile" class="file-input" accept=".mp4,video/mp4" onchange="handleVideoUpload()">
+                    <label for="videoFile" class="file-label">Choose Video File</label>
+                    <div id="fileName" class="file-name"></div>
+                </div>
+
+                <button id="analyzeBtn" class="analyze-button" onclick="analyzeVideo()">Analyze Video</button>
+                
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+
+                <div class="youtube-section">
+                    <form method=post>
+                        <h3 style="margin-bottom: 20px;">Enter YouTube URL</h3>
+                        <input type="text" name=url id="youtubeUrl" class="youtube-input" placeholder="https://www.youtube.com/watch?v=...">
+                        <button class="file-label" type=submit style="padding: 15px 40px;">Analyze YouTube Video</button>
+                    </form>
+                </div>
+
+                
+
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 VerifyAI. Fighting misinformation with artificial intelligence.</p>
+            <p style="margin-top: 10px; opacity: 0.7;">Empowering citizens with truth and transparency.</p>
+        </div>
+    </footer>
+
+    <script>
+        let uploadedFile = null;
+
+        function handleVideoUpload() {
+            const fileInput = document.getElementById('videoFile');
+            const fileName = document.getElementById('fileName');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            if (fileInput.files.length > 0) {
+                uploadedFile = fileInput.files[0];
+                
+                // Check if it's an MP4 file
+                if (!uploadedFile.type.includes('mp4')) {
+                    showStatus('Please upload an MP4 video file', 'error');
+                    uploadedFile = null;
+                    return;
+                }
+                
+                fileName.textContent = `Selected: ${uploadedFile.name} (${(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB)`;
+                analyzeBtn.classList.add('show');
+            }
+        }
+
+        function analyzeVideo() {
+            if (!uploadedFile) {
+                showStatus('Please select a video file first', 'error');
+                return;
+            }
+
+            showStatus(`Analyzing "${uploadedFile.name}"... This may take a few minutes.`, 'processing');
+            
+            // Simulate analysis (replace with actual API call)
+            setTimeout(() => {
+                showStatus('Analysis complete! Video has been fact-checked. (Demo mode - connect your backend for real analysis)', 'success');
+            }, 3000);
+        }
+
+        function analyzeYouTube() {
+            const url = document.getElementById('youtubeUrl').value;
+            
+            if (!url) {
+                showStatus('Please enter a YouTube URL', 'error');
+                return;
+            }
+
+            // Basic YouTube URL validation
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                showStatus('Please enter a valid YouTube URL', 'error');
+                return;
+            }
+
+            showStatus('Analyzing YouTube video... This may take a moment.', 'processing');
+            
+            // Simulate processing (replace with actual API call)
+            setTimeout(() => {
+                showStatus('Analysis complete! YouTube video has been fact-checked. (Demo mode)', 'success');
+            }, 3000);
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message show ${type}`;
+        }
+    </script>
+</body>
+</html>
+"""
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        url = request.form["url"]
+        print(f"Received URL: {url}")  # This prints in your VS Code terminal
+
+        try:
+            # Download video
+            mp4_path = youtube_to_mp4(url)
+            print("Downloaded video:", mp4_path)
+
+            # TwelveLabs processing (simplified for example)
+            unique_index_name = f"videos_{uuid.uuid4()}"
+            index = client.indexes.create(
+                index_name=unique_index_name,
+                models=[{"model_name": "pegasus1.2", "model_options": ["visual", "audio"]}]
+            )
+            asset = client.assets.create(method="direct", file=open(mp4_path, "rb"))
+            indexed_asset = client.indexes.indexed_assets.create(
+                index_id=index.id,
+                asset_id=asset.id
+            )
+
+            # Wait until ready
+            while True:
+                indexed_asset = client.indexes.indexed_assets.retrieve(
+                    index_id=index.id,
+                    indexed_asset_id=indexed_asset.id
+                )
+                print(f"Status: {indexed_asset.status}")
+                if indexed_asset.status == "ready":
+                    break
+                elif indexed_asset.status == "failed":
+                    raise RuntimeError("Indexing failed")
+                time.sleep(5)
+
+            # Analyze
+            text = client.analyze(
+                video_id=indexed_asset.id,
+                prompt="check for misinformation. Give in format: Summary: bullet points below, Misinformation: bullet points below (if none, say none)",
+                temperature=0.2,
+                max_tokens=1024
+            )
+            print("Analysis result:\n", text.data)
+
+            deleteMP4(mp4_path)
+
+        except Exception as e:
+            print("Error:", e)
+            return f"<p>Error occurred: {e}</p>"
+
+    return render_template_string(HTML_PAGE)
+
+if __name__ == "__main__":
+    app.run(debug=True)
